@@ -15,6 +15,10 @@ mBluetoothAdapter=BluetoothAdapter.getDefaultAdapter( )
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+<!--    让应用只支持蓝牙4.0可以进行以下配置-->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -22,7 +26,16 @@ mBluetoothAdapter=BluetoothAdapter.getDefaultAdapter( )
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".activity.BaseActivity"></activity>
+        <activity android:name=".activity.DeviceScanActivity">
+        </activity>
+        <activity android:name=".activity.DeviceControlActivity" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".activity.BaseActivity" />
         <activity android:name=".activity.BlueToothFourthActivity" />
         <activity
             android:name=".activity.BluetoothServerSocketActivity"
@@ -33,12 +46,9 @@ mBluetoothAdapter=BluetoothAdapter.getDefaultAdapter( )
         <activity
             android:name=".activity.MainActivity"
             android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
+
+        <service android:name=".utils.BluetoothLeService"/>
     </application>
 
 </manifest>
