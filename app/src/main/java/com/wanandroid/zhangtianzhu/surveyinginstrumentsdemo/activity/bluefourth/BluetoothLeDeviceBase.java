@@ -685,6 +685,23 @@ public abstract class BluetoothLeDeviceBase {
         return adapter;
     }
 
+    public BluetoothLeScanner getBluetoothLeScanner() {
+        //需要设备支持ble
+        if (!context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            return null;
+        }
+
+        //需要有BluetoothAdapter
+        final BluetoothManager bluetoothManager =
+                (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter adapter = bluetoothManager.getAdapter();
+        BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
+        if (scanner == null) {
+            return null;
+        }
+        return scanner;
+    }
+
     public void setConnectChangedListener(OnDeviceConnectChangedListener connectChangedListener) {
         this.connectChangedListener = connectChangedListener;
     }

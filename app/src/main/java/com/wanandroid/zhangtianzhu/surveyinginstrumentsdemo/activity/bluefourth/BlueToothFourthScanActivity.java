@@ -34,6 +34,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * 蓝牙4.0 低功耗蓝牙
+ */
 public class BlueToothFourthScanActivity extends AppCompatActivity {
 
     private static final String TAG = "UaTestActivity";
@@ -86,6 +89,7 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
         });
 
         mBluetoothAdapter = bluetoothLeDeviceA.isDeviceSupport();
+        mBluetoothLeScanner = bluetoothLeDeviceA.getBluetoothLeScanner();
         if (mBluetoothAdapter == null) {
             finish();
             return;
@@ -297,6 +301,7 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
                 byte[] packetByte = Utils.hexStringToByteArray(returnedPacket);
                 if (packetByte.length - 5 == Utils.getLengthFromToken(packetByte)) {
                     Log.e("mcy_returnedPacket", returnedPacket);
+                    mDataField.setText(returnedPacket);
                     bluetoothLeDeviceA.close();//取消连接
                 }
             }

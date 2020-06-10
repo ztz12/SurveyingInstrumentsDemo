@@ -42,6 +42,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * 经典蓝牙
+ */
 public class MainActivity extends BaseActivity implements CompoundButton.OnCheckedChangeListener {
     private static final String TAG = "MainActivity";
     private CheckBox ck_bluetooth;
