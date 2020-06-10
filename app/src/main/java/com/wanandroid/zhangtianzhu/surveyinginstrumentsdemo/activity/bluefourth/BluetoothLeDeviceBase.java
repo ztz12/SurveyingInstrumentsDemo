@@ -60,6 +60,16 @@ public abstract class BluetoothLeDeviceBase {
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mBluetoothLeScanner;
+    /**
+     * BluetoothGatt作为中央来使用和处理数据，通过BluetoothGatt可以连接设备（connect）,发现服务（discoverServices），
+     * 并把相应地属性返回到BluetoothGattCallback，BluetoothGattCallback返回中央的状态和周边提供的数据。bluetoothGatt 作为中央来使用与处理数据
+     * ，通过它可以进行连接
+     * BluetoothGattDescriptor：可以看成是描述符，对Characteristic的描述，包括范围、计量单位等。
+     *
+     * BluetoothGattService：服务，Characteristic的集合。
+     *  BluetoothProfile： 一个通用的规范，按照这个规范来收发数据。
+     * BluetoothGattCallback：已经连接上设备，对设备的某些操作后返回的结果。这里必须提醒下，已经连接上设备后的才可以返回，没有返回的认真看看有没有连接上设备
+     */
     private BluetoothGatt mBluetoothGatt;
 
     private int mConnectionState = STATE_DISCONNECTED;
@@ -110,15 +120,22 @@ public abstract class BluetoothLeDeviceBase {
             }
         }
 
-        //对设备进行回调，订阅，发现新服务
+        //对设备进行回调，订阅，发现新服务，设备订阅会返回所有特征的服务集合，比如心率监视器的服务，这个服务包含一个心率测量特征
+        //一个远程设备会对应很多个服务，这些服务又有特征集合，通过蓝牙来操作这些特征集合
+        // 描述符（Descriptor）--描述符定义了属性用来描述特征值。比如，描述符可以是人们可读的描述语句，可以是特征值得可接受范围，或者是特征值的测量单位。
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
+//                //获取远程设备的所有服务
 //                List<BluetoothGattService> services = mBluetoothGatt.getServices();
+//                //遍历所以服务
 //                for (int i = 0; i < services.size(); i++) {
 //                    HashMap<String, BluetoothGattCharacteristic> charMap = new HashMap<>();
+//                    //BluetoothGattService 服务 BluetoothGattCharacteristic的集合
 //                    BluetoothGattService bluetoothGattService = services.get(i);
+//                    //根据服务来获取每个UUID的值，每个属性都是通过UUID来确定的
 //                    String serviceUuid = bluetoothGattService.getUuid().toString();
+//                    //获取服务的所有特征集合
 //                    List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
 //                    for (int j = 0; j < characteristics.size(); j++) {
 //                        charMap.put(characteristics.get(j).getUuid().toString(), characteristics.get(j));
@@ -159,7 +176,7 @@ public abstract class BluetoothLeDeviceBase {
             }
         }
 
-        //读取从设备中传过来的值
+        //读取从设备服务特征值中传过来的数据
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             Log.d(TAG, "onCharacteristicRead: status---=" + status);
@@ -213,7 +230,7 @@ public abstract class BluetoothLeDeviceBase {
      * 当然了，接受数据的时候，也是这个样子，一次接收不完，循环接收。
      */
     public void sendToMsgOne() {
-        //不写这句，蓝牙消息传不回来
+        //不写这句，蓝牙消息传不回来，向当前特征值进行发送数据，然后就会回调onCharacteristicChanged，来返回该特征传回的数据
         mBluetoothGatt.setCharacteristicNotification(mBleGattCharacteristic, true);
         if (mBluetoothGatt != null && mBleGattCharacteristic != null) {
             //设置读数据的UUID
