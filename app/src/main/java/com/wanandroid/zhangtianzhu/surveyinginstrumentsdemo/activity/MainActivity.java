@@ -34,6 +34,7 @@ import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.utils.BluetoothUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -106,7 +107,9 @@ public class MainActivity extends BaseActivity implements CompoundButton.OnCheck
             public void onClick(View v) {
                 String text = "客户端发送的数据为：" + editText.getText().toString();
                 try {
-                    outputStream.write(text.getBytes(StandardCharsets.UTF_8));
+                    if (outputStream != null) {
+                        outputStream.write(text.getBytes(StandardCharsets.UTF_8));
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -177,13 +180,18 @@ public class MainActivity extends BaseActivity implements CompoundButton.OnCheck
                     boolean isSuccess = BluetoothUtil.createBond(bluetoothDevice);
                     //配对成功
                     if (isSuccess) {
-                        connectDevice(bluetoothDevice);
+                        try {
+                            bluetoothSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID);
+                            new CommonThread(bluetoothDevice).start();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 } else if (bluetoothDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
                     //移除配对信息，已经配对
                     boolean isSuccess = BluetoothUtil.removeBond(bluetoothDevice);
                     //移除配对成功
-                    if (isSuccess) {
+                    if (!isSuccess) {
                         refreshDevice(bluetoothDevice, BluetoothDevice.BOND_NONE);
                     }
                 }
@@ -256,11 +264,16 @@ public class MainActivity extends BaseActivity implements CompoundButton.OnCheck
      */
     private void cancelDiscovery() {
         mHandler.removeCallbacks(mRefresh);
-        tv_discovery.setText("取消搜索蓝牙设备");
         // 当前正在搜索，则取消搜索任务
         if (mBluetoothAdapter.isDiscovering()) {
             mBluetoothAdapter.cancelDiscovery(); // 取消扫描周围的蓝牙设备
         }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                tv_discovery.setText("取消搜索蓝牙设备");
+            }
+        });
     }
 
     @Override
@@ -351,23 +364,44 @@ public class MainActivity extends BaseActivity implements CompoundButton.OnCheck
         mAdapter.notifyDataSetChanged();
     }
 
-    private void connectDevice(BluetoothDevice bluetoothDevice) {
-        if (mBluetoothAdapter.isDiscovering()) {
-            mBluetoothAdapter.cancelDiscovery();
+    private class CommonThread extends Thread {
+        private BluetoothDevice bluetoothDevice;
+
+        public CommonThread(BluetoothDevice bluetoothDevice) {
+            this.bluetoothDevice = bluetoothDevice;
         }
-        try {
-            //创建客户端蓝牙socket
-            bluetoothSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID);
-            //开始进行蓝牙链接，如果没有配对则弹出提示框，提示配对
-            bluetoothSocket.connect();
-            //获得输出流，客户端指向服务端输出内容
-            outputStream = bluetoothSocket.getOutputStream();
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        @Override
+        public void run() {
+            super.run();
+
             try {
-                bluetoothSocket.close();
-            } catch (IOException e2) {
-                Log.e("error", "ON RESUME: Unable to close socket during connection failure", e2);
+                // 你应该在连接前总是这样做，而不需要考虑是否真的有在执行查询任务（但是如果你想要检查，调用 isDiscovering()）
+                //检查会很大程度影响效率
+                cancelDiscovery();
+                // 通过socket.connect()来连接. 同时也会阻塞线程
+                // 直到连接成功或者抛出异常
+                if (bluetoothSocket != null && !bluetoothSocket.isConnected()) {
+                    bluetoothSocket.connect();
+                    outputStream = bluetoothSocket.getOutputStream();
+                }
+
+            } catch (IOException connectException) {
+                // 无法连接，关闭socket并退出
+                try {
+                    Method m = bluetoothDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class});
+                    bluetoothSocket = (BluetoothSocket) m.invoke(bluetoothDevice, 1);
+                    if (bluetoothSocket != null) {
+                        bluetoothSocket.connect();
+                        outputStream = bluetoothSocket.getOutputStream();
+                    }
+                } catch (Exception e) {
+                    Log.e("BLUE", e.toString());
+                    try {
+                        bluetoothSocket.close();
+                    } catch (IOException ie) {
+                    }
+                }
             }
         }
     }

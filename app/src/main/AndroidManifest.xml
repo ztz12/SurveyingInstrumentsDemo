@@ -13,11 +13,10 @@ mBluetoothAdapter=BluetoothAdapter.getDefaultAdapter( )
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.READ_SMS" />
-    <uses-permission android:name="android.permission.INTERNET" />
-
-<!--    让应用只支持蓝牙4.0可以进行以下配置-->
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
-
+    <uses-permission android:name="android.permission.INTERNET" /> <!-- 让应用只支持蓝牙4.0可以进行以下配置 -->
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -26,29 +25,30 @@ mBluetoothAdapter=BluetoothAdapter.getDefaultAdapter( )
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".activity.DeviceScanActivity">
-        </activity>
-        <activity android:name=".activity.DeviceControlActivity" >
+        <activity android:name=".activity.bluefourth.BlueToothFourthScanActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".activity.DeviceScanActivity"></activity>
+        <activity android:name=".activity.DeviceControlActivity"></activity>
         <activity android:name=".activity.BaseActivity" />
         <activity android:name=".activity.BlueToothFourthActivity" />
         <activity
             android:name=".activity.BluetoothServerSocketActivity"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait">
+        </activity>
         <activity
             android:name=".activity.BluetoothReceiverActivity"
             android:screenOrientation="portrait" />
         <activity
             android:name=".activity.MainActivity"
-            android:screenOrientation="portrait">
-        </activity>
+            android:screenOrientation="portrait"></activity>
 
-        <service android:name=".utils.BluetoothLeService"/>
+        <service android:name=".utils.BluetoothLeService" />
     </application>
 
 </manifest>

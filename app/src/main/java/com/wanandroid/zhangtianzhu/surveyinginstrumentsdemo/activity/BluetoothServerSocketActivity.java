@@ -117,6 +117,7 @@ public class BluetoothServerSocketActivity extends BaseActivity {
             super.run();
             try {
                 serverSocket = mBluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(NAME, MY_UUID);
+                //accept方法是一个阻塞应用，会阻塞Ui线程调用
                 bluetoothSocket = serverSocket.accept();
                 inputStream = bluetoothSocket.getInputStream();
                 while (true) {
