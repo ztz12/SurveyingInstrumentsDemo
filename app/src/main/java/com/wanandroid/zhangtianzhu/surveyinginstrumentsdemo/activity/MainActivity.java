@@ -184,7 +184,10 @@ public class MainActivity extends BaseActivity implements CompoundButton.OnCheck
                     //配对成功
                     if (isSuccess) {
                         try {
+                            //明文传输，不安全，无需配对码
                             bluetoothSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID);
+                            //加密传输，Android 强制执行配对，需要配对码
+//                            bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(MY_UUID);
                             new CommonThread(bluetoothDevice).start();
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -418,7 +421,10 @@ public class MainActivity extends BaseActivity implements CompoundButton.OnCheck
         public void run() {
             super.run();
             try {
+                //明文传输，无需配对码
                 serverSocket = mBluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(NAME, MY_UUID);
+                //加密传输，Android 强制执行配对，需要配对码
+//                serverSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME,MY_UUID);
                 bluetoothServerSocket = serverSocket.accept();
                 inputStream = bluetoothServerSocket.getInputStream();
                 while (true) {

@@ -39,8 +39,10 @@ import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.callback.OnScanCallback;
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.callback.OnWriteCallback;
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.utils.HexUtil;
+import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.utils.AssistStatic;
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.utils.Utils;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -65,9 +67,9 @@ public abstract class BluetoothLeDeviceBase {
      * 并把相应地属性返回到BluetoothGattCallback，BluetoothGattCallback返回中央的状态和周边提供的数据。bluetoothGatt 作为中央来使用与处理数据
      * ，通过它可以进行连接
      * BluetoothGattDescriptor：可以看成是描述符，对Characteristic的描述，包括范围、计量单位等。
-     *
+     * <p>
      * BluetoothGattService：服务，Characteristic的集合。
-     *  BluetoothProfile： 一个通用的规范，按照这个规范来收发数据。
+     * BluetoothProfile： 一个通用的规范，按照这个规范来收发数据。
      * BluetoothGattCallback：已经连接上设备，对设备的某些操作后返回的结果。这里必须提醒下，已经连接上设备后的才可以返回，没有返回的认真看看有没有连接上设备
      */
     private BluetoothGatt mBluetoothGatt;
@@ -110,6 +112,14 @@ public abstract class BluetoothLeDeviceBase {
                     connectChangedListener.onConnected();
                 }
                 mConnectionState = STATE_CONNECTED;
+                //使用gatt.discoverServices()发现服务之前,建议先 sleep 500 毫秒, 因为刚刚连接上, 系统有些东西需要刷新,同理,遇到任何问题
+                // 延时一下看看能否解决, 因为有些系统的蓝牙很慢很卡,甚至手动关闭蓝牙 都卡死在那 ,偶尔还死机重启了
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                //发现服务
                 mBluetoothGatt.discoverServices();
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -200,14 +210,19 @@ public abstract class BluetoothLeDeviceBase {
          * 一旦接收到通知那么远程设备发生改变的时候就会回调 onCharacteristicChanged
          * when connected successfully will callback this method
          * this method can dealwith send password or data analyze
-         *
+         * 不能够做耗时操作，否则会出现100%丢包
          * */
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             Log.d(TAG, "onCharacteristicChanged: -----------=");
-            byte[] value = characteristic.getValue();
-            parseData(value);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    byte[] value = characteristic.getValue();
+                    parseData(value);
+                }
+            }).start();
         }
     };
 
@@ -323,8 +338,11 @@ public abstract class BluetoothLeDeviceBase {
             }
         }
 
+
         mBluetoothAdapter = mBluetoothManager.getAdapter();
-        mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        if (!mBluetoothAdapter.isEnabled()) {
+            mBluetoothAdapter.enable();
+        }
         if (mBluetoothAdapter == null) {
             Log.e(TAG, " --------- Unable to obtain a BluetoothAdapter. --------- ");
         }
@@ -351,11 +369,31 @@ public abstract class BluetoothLeDeviceBase {
             return false;
         }
 
-
-        mBluetoothGatt = device.connectGatt(context, true, mGattCallback);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mBluetoothGatt = device.connectGatt(context, true, mGattCallback, BluetoothDevice.TRANSPORT_LE);
+        } else {
+            mBluetoothGatt = device.connectGatt(context, true, mGattCallback);
+        }
         Log.d(TAG, " --------- Trying to create a new connection. --------- ");
         mConnectionState = STATE_CONNECTING;
         return true;
+    }
+
+
+    public static boolean refreshGattCache(BluetoothGatt gatt) {
+        boolean result = false;
+        try {
+            if (gatt != null) {
+                Method refresh = BluetoothGatt.class.getMethod("refresh");
+                if (refresh != null) {
+                    refresh.setAccessible(true);
+                    result = (boolean) refresh.invoke(gatt, new Object[0]);
+                }
+            }
+        } catch (Exception e) {
+        }
+        return result;
+
     }
 
 
@@ -396,6 +434,7 @@ public abstract class BluetoothLeDeviceBase {
     }
 
     /**
+     * 连接失败或者断开，必须及时关闭BluetoothGatt
      * After using a given BLE device, the app must call this method to ensure resources are
      * released properly.
      */
@@ -403,6 +442,8 @@ public abstract class BluetoothLeDeviceBase {
         if (mBluetoothGatt == null) {
             return;
         }
+        refreshGattCache(mBluetoothGatt);
+        mBluetoothGatt.disconnect();
         mBluetoothGatt.close();
         mBluetoothGatt = null;
     }
@@ -486,27 +527,34 @@ public abstract class BluetoothLeDeviceBase {
     }
 
     /**
+     * Android 7.0 不允许30s内扫描5次可以通过延长6s在进行扫描操作
      * 扫描
      */
     public void scanLeDevice(final BluetoothAdapter.LeScanCallback leScanCallback, final ScanCallback scanCallback, OnScanCallback callback) {
 
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
+            mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
             if (mBluetoothAdapter.isEnabled() && mBluetoothLeScanner != null) {
-                mBluetoothLeScanner.startScan(scanCallback);//开始搜索
                 if (callback != null) {
                     callback.onScanning();
                 }
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        mScanning = false;
-                        //10s后停止扫描
-                        mBluetoothAdapter.stopLeScan(bleDeviceScanCallback);
-                        if (callback != null) {
-                            callback.onFinish();
-                        }
+                        mBluetoothLeScanner.startScan(scanCallback);//开始搜索
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                mScanning = false;
+                                //10s后停止扫描
+                                mBluetoothAdapter.stopLeScan(bleDeviceScanCallback);
+                                if (callback != null) {
+                                    callback.onFinish();
+                                }
+                            }
+                        }, SCAN_TIME);
                     }
-                }, SCAN_TIME);
+                },6000);
             } else {
                 Log.e("mcy", "蓝牙不可用...");
             }
@@ -563,6 +611,7 @@ public abstract class BluetoothLeDeviceBase {
             }, time <= 0 ? SCAN_TIME : time);
             mScanning = true;
             if (specificUUids != null) {
+                //指定服务UUID进行搜索设备
                 mBluetoothAdapter.startLeScan(specificUUids, bleDeviceScanCallback);
             } else {
                 mBluetoothAdapter.startLeScan(bleDeviceScanCallback);

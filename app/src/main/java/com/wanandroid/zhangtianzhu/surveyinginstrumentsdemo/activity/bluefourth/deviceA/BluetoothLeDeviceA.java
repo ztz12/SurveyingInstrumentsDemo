@@ -1,6 +1,5 @@
 package com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.deviceA;
 
-import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
 import android.util.Log;
 

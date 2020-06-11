@@ -16,6 +16,8 @@ import android.provider.Settings;
 import android.widget.Toast;
 
 
+import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.utils.LocalUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,12 +80,16 @@ public abstract class BaseActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case REQUEST_PERMISSION_ACCESS_LOCATION: {
-                if (checkAllPermission()) {
-                    if (permissionUseInterface != null) {
-                        permissionUseInterface.onPermissionUse();
+                if (LocalUtils.checkGPSIsOpen(this)) {
+                    if (checkAllPermission()) {
+                        if (permissionUseInterface != null) {
+                            permissionUseInterface.onPermissionUse();
+                        }
+                    } else {
+                        showSettingDialog();
                     }
                 } else {
-                    showSettingDialog();
+                    LocalUtils.goToOpenGPS(this);
                 }
             }
             break;

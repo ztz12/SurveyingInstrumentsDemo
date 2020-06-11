@@ -83,7 +83,8 @@
                 android:gravity="center"
                 android:text="状态"
                 android:textColor="@color/colorPrimary"
-                android:textSize="17sp" />
+                android:textSize="17sp"
+                android:visibility="gone"/>
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView

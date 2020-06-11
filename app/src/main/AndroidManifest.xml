@@ -25,7 +25,7 @@ mBluetoothAdapter=BluetoothAdapter.getDefaultAdapter( )
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".activity.bluefourth.BlueToothFourthScanActivity"
+        <activity android:name=".activity.StartPageActivity"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,20 +33,23 @@ mBluetoothAdapter=BluetoothAdapter.getDefaultAdapter( )
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activity.DeviceScanActivity"></activity>
-        <activity android:name=".activity.DeviceControlActivity"></activity>
+        <activity
+            android:name=".activity.bluefourth.BlueToothFourthScanActivity"
+            android:screenOrientation="portrait">
+        </activity>
+        <activity android:name=".activity.DeviceScanActivity" />
+        <activity android:name=".activity.DeviceControlActivity" />
         <activity android:name=".activity.BaseActivity" />
         <activity android:name=".activity.BlueToothFourthActivity" />
         <activity
             android:name=".activity.BluetoothServerSocketActivity"
-            android:screenOrientation="portrait">
-        </activity>
+            android:screenOrientation="portrait"></activity>
         <activity
             android:name=".activity.BluetoothReceiverActivity"
             android:screenOrientation="portrait" />
         <activity
             android:name=".activity.MainActivity"
-            android:screenOrientation="portrait"></activity>
+            android:screenOrientation="portrait" />
 
         <service android:name=".utils.BluetoothLeService" />
     </application>

@@ -1,28 +1,27 @@
 package com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.adapter;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.view.View;
 
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.R;
-import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.bean.BlueDevice;
 
 import java.util.List;
 
-public class BluetoothRecyclerViewAdapter extends BaseRecyclerViewAdapter<BlueDevice> {
+public class BluetoothFourthRecyclerViewAdapter extends BaseRecyclerViewAdapter<BluetoothDevice> {
     private Context context;
-    private String[] mStateArray = {"未绑定", "绑定中", "已绑定", "已连接"};
 
-    public BluetoothRecyclerViewAdapter(Context mContext, List<BlueDevice> mData, int layoutId) {
+    public BluetoothFourthRecyclerViewAdapter(Context mContext, List<BluetoothDevice> mData, int layoutId){
         super(mContext, mData, layoutId);
         this.context = mContext;
     }
 
     @Override
-    public void covert(BaseViewHolder holder, BlueDevice item, final int position) {
+    public void covert(BaseViewHolder holder, BluetoothDevice item, final int position) {
         holder.setTextView(R.id.tv_blue_name, item.getName());
         holder.setTextView(R.id.tv_blue_address, item.getAddress());
-        holder.setVisibility(R.id.tv_blue_state,View.GONE);
-        holder.setTextView(R.id.tv_blue_state, mStateArray[item.getState() - 10]);
+        holder.setVisibility(R.id.tv_blue_state, View.GONE);
+
         holder.setOnItemClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

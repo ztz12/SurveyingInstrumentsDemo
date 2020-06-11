@@ -25,6 +25,7 @@ import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.callback.OnScanCallback;
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.callback.OnWriteCallback;
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.activity.bluefourth.deviceA.BluetoothLeDeviceA;
+import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.adapter.BluetoothFourthRecyclerViewAdapter;
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.adapter.BluetoothRecyclerViewAdapter;
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.bean.BlueDevice;
 import com.wanandroid.zhangtianzhu.surveyinginstrumentsdemo.utils.BluetoothUtil;
@@ -51,11 +52,12 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
     private TextView send;
     private EditText sendCommand;
     private BluetoothLeDeviceA bluetoothLeDeviceA;
-    private BluetoothRecyclerViewAdapter mAdapter;
+    private BluetoothFourthRecyclerViewAdapter mAdapter;
     private RecyclerView mRl;
-    private List<BlueDevice> mBlueDeviceList;
     private BluetoothAdapter.LeScanCallback leScanCallback;
     private ScanCallback scanCallback;
+    private List<BluetoothDevice> devices;
+
 
 
     @Override
@@ -64,7 +66,7 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
         setContentView(R.layout.activity_blue_tooth_fourth_scan);
 
         bluetoothLeDeviceA = new BluetoothLeDeviceA(this);
-        mBlueDeviceList = new ArrayList<>();
+        devices = new ArrayList<>();
         mRl = findViewById(R.id.rl_bluetooth);
         bluetoothLeDeviceA.setConnectChangedListener(new OnDeviceConnectChangedListener() {
             @Override
@@ -129,65 +131,38 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
             }
         });
 
+        initBlueDevice();
+
     }
 
     /**
      * 初始化蓝牙列表
      */
     private void initBlueDevice() {
-        //获取已经配对的蓝牙集合
-        for (BluetoothDevice blueDevice : devices) {
-            BlueDevice device = new BlueDevice();
-            device.setName(blueDevice.getName());
-            device.setAddress(blueDevice.getAddress());
-            device.setState(blueDevice.getBondState());
-            mBlueDeviceList.add(device);
-        }
         if (mAdapter == null) {
             LinearLayoutManager manager = new LinearLayoutManager(this);
-            mAdapter = new BluetoothRecyclerViewAdapter(this, mBlueDeviceList, R.layout.item_bluetooth);
+            mAdapter = new BluetoothFourthRecyclerViewAdapter(this, devices, R.layout.item_bluetooth);
             mRl.setLayoutManager(manager);
             mRl.setAdapter(mAdapter);
         } else {
             mAdapter.notifyDataSetChanged();
         }
 
-        mAdapter.setOnItemClickListenerInterface(new BluetoothRecyclerViewAdapter.OnItemClickListenerInterface() {
+        mAdapter.setOnItemClickListenerInterface(new BluetoothFourthRecyclerViewAdapter.OnItemClickListenerInterface() {
             @Override
             public void onClick(int position) {
 
-                BlueDevice device = mBlueDeviceList.get(position);
+                BluetoothDevice device = devices.get(position);
                 //根据设备地址获取远程蓝牙设备对象
                 BluetoothDevice bluetoothDevice = mBluetoothAdapter.getRemoteDevice(device.getAddress());
                 //低功耗蓝牙没有配对，直接连接
                 //连接方式有两种，一种根据蓝牙地址获取远程设备进行连接，另一种直接连接，传入一个回调接口，反馈连接状态，根据状态进行下一步操作
+                //扫描到设备，过1s后在进行连接，避免扫描时候连接，导致连接缓存被刷新
                 bluetoothLeDeviceA.connect(bluetoothDevice.getAddress());
             }
         });
     }
 
-    /**
-     * 刷新蓝牙列表
-     */
-    private void refreshDevice(BluetoothDevice device, int state) {
-        int i;
-        for (i = 0; i < mBlueDeviceList.size(); i++) {
-            BlueDevice item = mBlueDeviceList.get(i);
-            if (item.address.equals(device.getAddress())) {
-                item.state = state;
-                mBlueDeviceList.set(i, item);
-                break;
-            }
-        }
-        if (i >= mBlueDeviceList.size()) {
-            BlueDevice blueDevice = new BlueDevice();
-            blueDevice.setName(device.getName());
-            blueDevice.setAddress(device.getAddress());
-            blueDevice.setState(device.getBondState());
-            mBlueDeviceList.add(blueDevice);
-        }
-        mAdapter.notifyDataSetChanged();
-    }
 
     @Override
     protected void onResume() {
@@ -207,8 +182,6 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
         super.onDestroy();
         bluetoothLeDeviceA.close();
     }
-
-    ArrayList<BluetoothDevice> devices = new ArrayList<>();
 
     private void scanLeDevice(final boolean enable) {
         startScan(enable);
@@ -246,17 +219,19 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
             @Override
             public void onFinish() {
                 scanResult.setText("扫描成功");
-                initBlueDevice();
             }
 
             @Override
             public void onScanning() {
-                scanResult.setText("扫描中........（60s时间）");
+                scanResult.setText("蓝牙搜索中，请稍后。。。");
 
             }
         });
     }
 
+    /**
+     * 扫描蓝牙进行回调的时候，开启一个线程进行处理耗时操作
+     */
     private void initBle() {
         leScanCallback = new BluetoothAdapter.LeScanCallback() {
             @Override
@@ -264,6 +239,7 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
 
                 if (!devices.contains(device)) {
                     devices.add(device);
+                    mAdapter.notifyDataSetChanged();
                     Log.e("mcy", "扫描到设备-->" + device.getName());
                 }
 //                if (device.getName().equals("00doos009000012147")) {//连接制定的设备。！！！！！测试使用！！！！！！
@@ -281,6 +257,7 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
             public void onScanResult(int callbackType, ScanResult result) {
                 if (!devices.contains(result.getDevice())) {
                     devices.add(result.getDevice());
+                    mAdapter.notifyDataSetChanged();
                 }
 //                if (result.getDevice().getName().equals("00doos009000012147")) {//连接制定的设备。！！！！！测试使用！！！！！！
 //                    Log.e("mcy", "扫描到设备-->" + result.getDevice().getName());
@@ -301,8 +278,13 @@ public class BlueToothFourthScanActivity extends AppCompatActivity {
                 byte[] packetByte = Utils.hexStringToByteArray(returnedPacket);
                 if (packetByte.length - 5 == Utils.getLengthFromToken(packetByte)) {
                     Log.e("mcy_returnedPacket", returnedPacket);
-                    mDataField.setText(returnedPacket);
-                    bluetoothLeDeviceA.close();//取消连接
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mDataField.setText(returnedPacket);
+                            bluetoothLeDeviceA.close();//取消连接
+                        }
+                    });
                 }
             }
 
