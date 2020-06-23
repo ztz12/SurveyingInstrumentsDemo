@@ -105,6 +105,7 @@ public abstract class BluetoothLeDeviceBase {
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         //连接状态发送改变
+        //状态码 133 连接超时，未找到设备   8 设备超出范围  22 表示本地设备终止连接
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
@@ -123,6 +124,8 @@ public abstract class BluetoothLeDeviceBase {
                 mBluetoothGatt.discoverServices();
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                //防止出现133 错误
+                close();
                 if (connectChangedListener != null) {
                     connectChangedListener.onDisconnected();
                 }
@@ -136,51 +139,51 @@ public abstract class BluetoothLeDeviceBase {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-//                //获取远程设备的所有服务
-//                List<BluetoothGattService> services = mBluetoothGatt.getServices();
-//                //遍历所以服务
-//                for (int i = 0; i < services.size(); i++) {
-//                    HashMap<String, BluetoothGattCharacteristic> charMap = new HashMap<>();
-//                    //BluetoothGattService 服务 BluetoothGattCharacteristic的集合
-//                    BluetoothGattService bluetoothGattService = services.get(i);
-//                    //根据服务来获取每个UUID的值，每个属性都是通过UUID来确定的
-//                    String serviceUuid = bluetoothGattService.getUuid().toString();
-//                    //获取服务的所有特征集合
-//                    List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
-//                    for (int j = 0; j < characteristics.size(); j++) {
-//                        charMap.put(characteristics.get(j).getUuid().toString(), characteristics.get(j));
-//                    }
-//                    servicesMap.put(serviceUuid, charMap);
+                //获取远程设备的所有服务
+                List<BluetoothGattService> services = mBluetoothGatt.getServices();
+                //遍历所以服务
+                for (int i = 0; i < services.size(); i++) {
+                    HashMap<String, BluetoothGattCharacteristic> charMap = new HashMap<>();
+                    //BluetoothGattService 服务 BluetoothGattCharacteristic的集合
+                    BluetoothGattService bluetoothGattService = services.get(i);
+                    //根据服务来获取每个UUID的值，每个属性都是通过UUID来确定的
+                    String serviceUuid = bluetoothGattService.getUuid().toString();
+                    //获取服务的所有特征集合
+                    List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
+                    for (int j = 0; j < characteristics.size(); j++) {
+                        charMap.put(characteristics.get(j).getUuid().toString(), characteristics.get(j));
+                    }
+                    servicesMap.put(serviceUuid, charMap);
+                }
+                BluetoothGattCharacteristic bluetoothGattCharacteristic = getBluetoothGattCharacteristic(UUID_SERVICE, UUID_CHARACTERISTIC);
+                if (bluetoothGattCharacteristic == null)
+                    return;
+                enableGattServicesNotification(bluetoothGattCharacteristic);
+
+//                Log.e("mcy", "发现服务成功...");
+//                gattService = gatt.getService(UUID.fromString("49535343-fe7d-4ae5-8fa9-9fafd205e455"));
+//                indexType = 1;
+//                if (gattService == null) {
+//                    indexType = 2;
+//                    gattService = gatt.getService(UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb"));
 //                }
-//                BluetoothGattCharacteristic bluetoothGattCharacteristic = getBluetoothGattCharacteristic(UUID_SERVICE, UUID_CHARACTERISTIC);
-//                if (bluetoothGattCharacteristic == null)
-//                    return;
-//                enableGattServicesNotification(bluetoothGattCharacteristic);
-
-                Log.e("mcy", "发现服务成功...");
-                gattService = gatt.getService(UUID.fromString("49535343-fe7d-4ae5-8fa9-9fafd205e455"));
-                indexType = 1;
-                if (gattService == null) {
-                    indexType = 2;
-                    gattService = gatt.getService(UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb"));
-                }
-                if (gattService == null) {
-                    Log.e("mcy", "获取bluetoothGattService失败...");
-                } else {
-                    if (indexType == 1) {
-                        mBleGattCharacteristic = gattService.getCharacteristic(UUID.fromString("49535343-8841-43F4-A8D4-ECBE34729BB3"));
-                    } else {
-                        mBleGattCharacteristic = gattService.getCharacteristic(UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb"));
-                    }
-                    if (mBleGattCharacteristic == null) {
-                        Log.e("mcy", "获取Characteristic失败...");
-                    } else {
-                        //这一句是为了接受蓝牙数据,必须写!!!否则接受不到数据
-                        mBluetoothGatt.setCharacteristicNotification(mBleGattCharacteristic, true);
-                        discoverServicesSuccess();
-                    }
-                }
-
+//                if (gattService == null) {
+//                    Log.e("mcy", "获取bluetoothGattService失败...");
+//                } else {
+//                    if (indexType == 1) {
+//                        mBleGattCharacteristic = gattService.getCharacteristic(UUID.fromString("49535343-8841-43F4-A8D4-ECBE34729BB3"));
+//                    } else {
+//                        mBleGattCharacteristic = gattService.getCharacteristic(UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb"));
+//                    }
+//                    if (mBleGattCharacteristic == null) {
+//                        Log.e("mcy", "获取Characteristic失败...");
+//                    } else {
+//                        //这一句是为了接受蓝牙数据,必须写!!!否则接受不到数据
+//                        mBluetoothGatt.setCharacteristicNotification(mBleGattCharacteristic, true);
+//                        discoverServicesSuccess();
+//                    }
+//                }
+//
             } else {
                 Log.w(TAG, " --------- onServicesDiscovered received: " + status);
             }
@@ -370,10 +373,13 @@ public abstract class BluetoothLeDeviceBase {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mBluetoothGatt = device.connectGatt(context, true, mGattCallback, BluetoothDevice.TRANSPORT_LE);
+            //autoContent 是直接连接到远程设备（false）还是直接连接到 远程设备一可用就自动连接（true） BluetoothDevice设置蓝牙传输层模式，报133错误，
+            //也可能传输层问题，设置不同的传输层模式解决
+            mBluetoothGatt = device.connectGatt(context, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
         } else {
-            mBluetoothGatt = device.connectGatt(context, true, mGattCallback);
+            mBluetoothGatt = device.connectGatt(context, false, mGattCallback);
         }
+//        mBluetoothGatt = device.connectGatt(context, false, mGattCallback);
         Log.d(TAG, " --------- Trying to create a new connection. --------- ");
         mConnectionState = STATE_CONNECTING;
         return true;
@@ -554,7 +560,7 @@ public abstract class BluetoothLeDeviceBase {
                             }
                         }, SCAN_TIME);
                     }
-                },6000);
+                }, 6000);
             } else {
                 Log.e("mcy", "蓝牙不可用...");
             }

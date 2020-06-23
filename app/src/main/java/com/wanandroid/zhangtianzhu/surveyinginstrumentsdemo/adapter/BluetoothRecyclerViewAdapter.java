@@ -21,7 +21,6 @@ public class BluetoothRecyclerViewAdapter extends BaseRecyclerViewAdapter<BlueDe
     public void covert(BaseViewHolder holder, BlueDevice item, final int position) {
         holder.setTextView(R.id.tv_blue_name, item.getName());
         holder.setTextView(R.id.tv_blue_address, item.getAddress());
-        holder.setVisibility(R.id.tv_blue_state,View.GONE);
         holder.setTextView(R.id.tv_blue_state, mStateArray[item.getState() - 10]);
         holder.setOnItemClickListener(new View.OnClickListener() {
             @Override
